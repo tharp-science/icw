@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "description": "Makes ⌘ (i/c/w, in correspondence with) a working operator in the prompt: a live menu to pick fragments, addresses attached on send, knots drawn as links.",
   "author": {
-    "name": "Thyke i/c/w Commons"
+    "name": "Thyke Applied Research & Participatory Prototyping (THARP)"
   },
   "license": "MIT",
   "userConfig": {
