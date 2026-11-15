@@ -19,7 +19,7 @@ export type Config = {
 
 export type SourceState = 'ok' | 'empty' | 'unavailable' | 'not asked'
 
-/** How each source last answered, for `/knot sources`. */
+/** How each source last answered, for `/icw sources`. */
 export const lastAnswer = new Map<string, { state: SourceState; note: string }>()
 
 /** A tool only that source's server has, to find the server by. */

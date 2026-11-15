@@ -1,7 +1,7 @@
-// Grammar of the knot operator. Pure: no engine calls, so it is tested alone.
-// The parser finds addresses-to-be; it never decides how a knot is read.
+// Grammar of the loop operator. Pure: no engine calls, so it is tested alone.
+// The parser finds addresses-to-be; it never decides how a loop is read.
 
-export const KNOT = '⌘'
+export const LOOP = '⌘'
 export const SOURCES = ['obsidian', 'notion', 'scuba', 'web'] as const
 
 export type Side = {
@@ -28,8 +28,8 @@ type Form =
 
 export type Span = { start: number; end: number }
 
-/** A knot, and where its operator stands in the prompt (for drawing it). */
-export type Knot = Form & { ops: Span[] }
+/** A loop, and where its operator stands in the prompt (for drawing it). */
+export type Loop = Form & { ops: Span[] }
 
 type Atom = {
   type: 'ws' | 'op' | 'phrase' | 'word'
@@ -126,7 +126,7 @@ const sideOf = (atom: Atom | undefined): Side | undefined => {
 /** A side that needs no guessing about where it starts or ends. */
 const isFirm = (side: Side) => side.kind !== 'slug'
 
-/** ⌘K, ⌘⇧P, ⌘+C, ⌘Enter: a keyboard shortcut, not a knot. */
+/** ⌘K, ⌘⇧P, ⌘+C, ⌘Enter: a keyboard shortcut, not a loop. */
 const isShortcut = (right: Atom): boolean => {
   if (right.type !== 'word') return false
   if (MODIFIERS.test(right.text)) return true
@@ -136,14 +136,14 @@ const isShortcut = (right: Atom): boolean => {
 }
 
 type Found = {
-  knot: Form
+  loop: Form
   first: Atom
   last: Atom
   used: Atom[]
   ops: Atom[]
 }
 
-const knotsOfLine = (line: string, offset: number, whole: string): Found[] => {
+const loopsOfLine = (line: string, offset: number, whole: string): Found[] => {
   const atoms = atomsOf(line, offset)
   const found: Found[] = []
   const solid = (a: Atom | undefined) =>
@@ -161,7 +161,7 @@ const knotsOfLine = (line: string, offset: number, whole: string): Found[] => {
       if (!tightL && tightR && isShortcut(tightR)) return
       if (left && right) {
         found.push({
-          knot: { form: 'infix', left, right },
+          loop: { form: 'infix', left, right },
           first: tightL!,
           last: tightR!,
           used: [tightL!, tightR!],
@@ -169,7 +169,7 @@ const knotsOfLine = (line: string, offset: number, whole: string): Found[] => {
         })
       } else if (right && !tightL) {
         found.push({
-          knot: { form: 'prefix', right },
+          loop: { form: 'prefix', right },
           first: op,
           last: tightR!,
           used: [tightR!],
@@ -177,7 +177,7 @@ const knotsOfLine = (line: string, offset: number, whole: string): Found[] => {
         })
       } else if (left && !tightR) {
         found.push({
-          knot: { form: 'open', left },
+          loop: { form: 'open', left },
           first: tightL!,
           last: op,
           used: [tightL!],
@@ -204,7 +204,7 @@ const knotsOfLine = (line: string, offset: number, whole: string): Found[] => {
 
     if (l && r && firmL && firmR) {
       found.push({
-        knot: { form: 'infix', left: l, right: r },
+        loop: { form: 'infix', left: l, right: r },
         first: nearL!,
         last: nearR!,
         used: [nearL!, nearR!],
@@ -212,7 +212,7 @@ const knotsOfLine = (line: string, offset: number, whole: string): Found[] => {
       })
     } else if (l && firmL && !nearR) {
       found.push({
-        knot: { form: 'open', left: l },
+        loop: { form: 'open', left: l },
         first: nearL!,
         last: op,
         used: [nearL!],
@@ -220,7 +220,7 @@ const knotsOfLine = (line: string, offset: number, whole: string): Found[] => {
       })
     } else {
       found.push({
-        knot: { form: 'undelimited', text: span(first, last).trim() },
+        loop: { form: 'undelimited', text: span(first, last).trim() },
         first,
         last,
         used: [nearL, nearR].filter((a): a is Atom => a !== undefined),
@@ -229,25 +229,25 @@ const knotsOfLine = (line: string, offset: number, whole: string): Found[] => {
     }
   })
 
-  // A side claimed by two operators makes a chain: one knot of several
+  // A side claimed by two operators makes a chain: one loop of several
   // sides. How they pair up is a reading, and is not decided here.
-  const sidesIn = (knot: Form): Side[] | undefined =>
-    knot.form === 'infix'
-      ? [knot.left, knot.right]
-      : knot.form === 'chain'
-        ? knot.sides
+  const sidesIn = (loop: Form): Side[] | undefined =>
+    loop.form === 'infix'
+      ? [loop.left, loop.right]
+      : loop.form === 'chain'
+        ? loop.sides
         : undefined
   const merged: Found[] = []
   for (const f of found) {
     const prev = merged.at(-1)
     if (prev && prev.used.some(a => f.used.includes(a))) {
-      const sides = sidesIn(prev.knot)
-      const knot: Form =
-        sides && f.knot.form === 'infix'
-          ? { form: 'chain', sides: [...sides, f.knot.right] }
+      const sides = sidesIn(prev.loop)
+      const loop: Form =
+        sides && f.loop.form === 'infix'
+          ? { form: 'chain', sides: [...sides, f.loop.right] }
           : { form: 'unparsed', text: span(prev.first, f.last).trim() }
       merged[merged.length - 1] = {
-        knot,
+        loop,
         first: prev.first,
         last: f.last,
         used: [...prev.used, ...f.used],
@@ -261,35 +261,35 @@ const knotsOfLine = (line: string, offset: number, whole: string): Found[] => {
   return merged
 }
 
-/** Every knot in a prompt, in the order written. */
-export const parse = (text: string): Knot[] => {
-  if (!text.includes(KNOT) && !text.includes('i/c/w')) return []
+/** Every loop in a prompt, in the order written. */
+export const parse = (text: string): Loop[] => {
+  if (!text.includes(LOOP) && !text.includes('i/c/w')) return []
   const masked = mask(text)
-  const knots: Knot[] = []
+  const loops: Loop[] = []
   let offset = 0
   for (const line of masked.split('\n')) {
-    for (const f of knotsOfLine(line, offset, text)) {
+    for (const f of loopsOfLine(line, offset, text)) {
       const ops = f.ops.map(a => ({ start: a.start, end: a.end }))
-      knots.push({ ...f.knot, ops })
+      loops.push({ ...f.loop, ops })
     }
     offset += line.length + 1
   }
 
-  return knots
+  return loops
 }
 
 /**
- * Where every knot character stands that is not a keyboard shortcut or
+ * Where every loop character stands that is not a keyboard shortcut or
  * inside code or a quotation: what gets coloured, a lone one included.
  */
 export const glyphsOf = (text: string): Span[] => {
-  if (!text.includes(KNOT)) return []
+  if (!text.includes(LOOP)) return []
   const spans: Span[] = []
   let offset = 0
   for (const line of mask(text).split('\n')) {
     const atoms = atomsOf(line, offset)
     atoms.forEach((op, k) => {
-      if (op.type !== 'op' || op.text !== KNOT) return
+      if (op.type !== 'op' || op.text !== LOOP) return
       const before = atoms[k - 1]
       const after = atoms[k + 1]
       const isTightLeft = before?.type === 'word' || before?.type === 'phrase'
@@ -302,16 +302,16 @@ export const glyphsOf = (text: string): Span[] => {
   return spans
 }
 
-/** The sides of a knot that can be looked up. */
-export const sidesOf = (knot: Knot): Side[] =>
-  knot.form === 'infix'
-    ? [knot.left, knot.right]
-    : knot.form === 'prefix'
-      ? [knot.right]
-      : knot.form === 'open'
-        ? [knot.left]
-        : knot.form === 'chain'
-          ? knot.sides
+/** The sides of a loop that can be looked up. */
+export const sidesOf = (loop: Loop): Side[] =>
+  loop.form === 'infix'
+    ? [loop.left, loop.right]
+    : loop.form === 'prefix'
+      ? [loop.right]
+      : loop.form === 'open'
+        ? [loop.left]
+        : loop.form === 'chain'
+          ? loop.sides
           : []
 
 /** A title in plain letters: lower case, accents dropped, hyphens between. */

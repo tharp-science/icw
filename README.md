@@ -2,7 +2,7 @@
 
 Makes ⌘ a working operator in the Claude Code prompt. ⌘ is the portable character for **i/c/w**, "in correspondence with": `A⌘B` sets two things against each other so that one can show something about the other.
 
-The mod does one job: it turns what you type into addresses and hands them to Claude. It never decides how a knot is read. That stays with you and Claude, guided by the bundled `icw-correspondence` skill.
+The mod does one job: it turns what you type into addresses and hands them to Claude. It never decides how a loop is read. That stays with you and Claude, guided by the bundled `icw-correspondence` skill.
 
 It ships with three sample sources, Notion, Scuba and an Obsidian vault, and is meant to be adapted to your own.
 
@@ -40,7 +40,7 @@ Type ⌘ in the prompt (or `icw`, which the terminal's typeahead offers to repla
 
 When you send, each side is resolved to an address and attached as context only Claude reads. Your typed text is never changed. In the transcript each ⌘ is coloured and each resolved side is a link.
 
-`/knot` lists what resolved in this session, `/knot sources` shows each source and whether it answered, `/knot forget <handle>` drops a handle, and `/knot pick` opens the picker as a pane.
+`/icw` lists what resolved in this session, `/icw sources` shows each source and whether it answered, `/icw forget <handle>` drops a handle, and `/icw pick` opens the picker as a pane.
 
 In the desktop app the picker is a menu above the prompt, chosen by click. In the terminal it is the typeahead, chosen by keyboard, and a sent message keeps its usual look with its links listed beneath.
 

@@ -1,4 +1,4 @@
-// The knot in a sent message is drawn coloured, on every surface that
+// The loop in a sent message is drawn coloured, on every surface that
 // draws user messages.
 
 import { expect, test } from 'claude-code/testing'
@@ -14,7 +14,7 @@ const MESSAGE = {
   },
 } as const
 
-test('the knot is drawn as its own coloured glyph', async ($, on) => {
+test('the loop is drawn as its own coloured glyph', async ($, on) => {
   on('store.get', () => ({ value: undefined }))
   on('clock.every', () => ({ value: undefined }))
 
@@ -27,7 +27,7 @@ test('the knot is drawn as its own coloured glyph', async ($, on) => {
   }
 })
 
-test('a lone knot character is coloured too', async ($, on) => {
+test('a lone loop character is coloured too', async ($, on) => {
   on('store.get', () => ({ value: undefined }))
   on('clock.every', () => ({ value: undefined }))
 
@@ -40,7 +40,7 @@ test('a lone knot character is coloured too', async ($, on) => {
   await ui.unmount()
 })
 
-test('a message without a knot is left to the engine', async ($, on) => {
+test('a message without a loop is left to the engine', async ($, on) => {
   on('ui.render', ($, e) => {
     const { Text } = $.ui.resolve(e)
 
@@ -63,7 +63,7 @@ test('the picker pane draws a source choice and a search field', async ($, on) =
     const ui = await $.ui.mount({
       plugin: 'icw',
       component: 'Pane',
-      requestId: 'knot-pick',
+      requestId: 'loop-pick',
       surface,
       props: {
         title: 'pick',
@@ -80,7 +80,7 @@ test('the picker pane draws a source choice and a search field', async ($, on) =
   }
 })
 
-test('typing a knot opens the menu above the prompt', async ($, on) => {
+test('typing a loop opens the menu above the prompt', async ($, on) => {
   on('store.get', () => ({ value: undefined }))
   on('prompt.edit', (_, e) => ({
     text: e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end),
@@ -120,7 +120,7 @@ test('typing a knot opens the menu above the prompt', async ($, on) => {
   await ui.unmount()
 })
 
-test('a knot typed after a picked fragment strings the two together', async ($, on) => {
+test('a loop typed after a picked fragment strings the two together', async ($, on) => {
   on('store.get', () => ({ value: undefined }))
   on('prompt.edit', (_, e) => ({
     text: e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end),

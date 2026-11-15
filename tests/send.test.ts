@@ -26,7 +26,7 @@ const SCUBA = {
 const NOTION = {
   results: [
     { id: 'n1', title: 'Field notes on rivers — a working history', url: 'https://app.notion.com/p/n1?pvs=204', path: 'Docs' },
-    { id: 'n2', title: 'A glossary of knots', url: 'https://app.notion.com/p/n2?pvs=204', path: 'Docs' },
+    { id: 'n2', title: 'A glossary of loops', url: 'https://app.notion.com/p/n2?pvs=204', path: 'Docs' },
   ],
 }
 // An Obsidian vault is read from its folder: no server stands behind it.
@@ -85,7 +85,7 @@ const send = ($: { prompt: unknown }, typed: string) =>
     wait: false,
   })
 
-test('a prompt without a knot calls no source and is passed on untouched', async ($, on) => {
+test('a prompt without a loop calls no source and is passed on untouched', async ($, on) => {
   mock.store(on)
   const seen = world(on)
   await send($, 'press ⌘K to search, then ⌘+C')
@@ -93,7 +93,7 @@ test('a prompt without a knot calls no source and is passed on untouched', async
   expect(seen.sent[0]?.context).toBe(undefined)
 })
 
-test('a sentence that only mentions the knot attaches nothing', async ($, on) => {
+test('a sentence that only mentions the loop attaches nothing', async ($, on) => {
   mock.store(on)
   const seen = world(on)
   await send($, 'can we make the ⌘ stand out a little more?')
@@ -157,7 +157,7 @@ test('three on one string reach Claude as one chain', async ($, on) => {
   expect(block).toContain('https://c.example/z | resolved (address)')
 })
 
-test('the knot alone asks for instructions', async ($, on) => {
+test('the loop alone asks for instructions', async ($, on) => {
   mock.store(on)
   const seen = world(on)
   await send($, '⌘')
@@ -230,7 +230,7 @@ test('the menu searches live and a click writes the handle into the draft', asyn
   expect(seen.calls.map(c => c.tool)).toEqual(['search'])
   const row = await ui.find({ type: 'Button', text: /River Papers/ })
   expect(row).toBeDefined()
-  await ui.press({ key: 'knot-0' })
+  await ui.press({ key: 'loop-0' })
   expect(fills.at(-1)?.text).toBe('see ⌘scuba:river-papers ')
   await ui.unmount()
 })

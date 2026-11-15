@@ -1,6 +1,6 @@
 // icw: makes ⌘ a working operator in the prompt.
-// Picker while typing, addresses attached on send, knots drawn as links.
-// The mod finds addresses only; how a knot is read stays with Claude.
+// Picker while typing, addresses attached on send, loops drawn as links.
+// The mod finds addresses only; how a loop is read stays with Claude.
 
 import type {
   EngineInterface,
@@ -11,7 +11,7 @@ import type {
 
 import { canSearch, lastAnswer, search, within } from './adapters'
 import type { Config } from './adapters'
-import { KNOT, SOURCES, glyphsOf, parse, sidesOf } from './parse'
+import { LOOP, SOURCES, glyphsOf, parse, sidesOf } from './parse'
 import { contextBlock, offered, resolveAll, resolvedSides } from './resolve'
 import type { Resolved } from './resolve'
 import {
@@ -49,8 +49,8 @@ const configOf = (options: PluginOptions): Config => {
   }
 }
 
-/** The knots resolved since the module loaded, for `/knot`. */
-const sessionKnots: Resolved[] = []
+/** The loops resolved since the module loaded, for `/icw`. */
+const sessionLoops: Resolved[] = []
 
 /** When each message was first drawn, and the timer behind the shimmer. */
 const firstDrawn = new Map<string, number>()
@@ -82,7 +82,7 @@ async function heldHandles($: EngineInterface): Promise<Handle[]> {
   return held.handles
 }
 
-/** Whether the prompt box ever asked the picker, for `/knot sources`. */
+/** Whether the prompt box ever asked the picker, for `/icw sources`. */
 const picker = { asked: 0, lastToken: '' }
 
 /**
@@ -92,17 +92,17 @@ const picker = { asked: 0, lastToken: '' }
 const PERSON = new Set<string>(['composer', 'sdk', 'bridge'])
 
 /** The picker pane: for surfaces whose prompt box never asks the picker. */
-const PANE = 'knot-pick'
+const PANE = 'loop-pick'
 const pick = { source: '', query: '', hits: [] as Fragment[], note: '' }
 const editing = { asked: 0, surface: '' }
 
-/** The live menu above the prompt: what the knot being typed could mean. */
+/** The live menu above the prompt: what the loop being typed could mean. */
 type MenuRow = {
   label: string
   hint: string
   write: string
   fragment?: Fragment
-  /** Set on the row that turns the prefix knot just picked into an infix. */
+  /** Set on the row that turns the prefix loop just picked into an infix. */
   join?: { from: string; to: string }
 }
 const menu = {
@@ -114,24 +114,24 @@ const menu = {
   seq: 0,
 }
 
-/** How the knot is used: shown when ⌘ stands alone, typed or sent. */
+/** How the loop is used: shown when ⌘ stands alone, typed or sent. */
 const USAGE = [
-  `${KNOT}name  search every source for a fragment`,
-  `${KNOT}source:name  search one source (obsidian, notion, scuba)`,
-  `a${KNOT}b  connect two fragments: pick one, type ${KNOT} again, pick the other`,
-  `"a new question"${KNOT}b  or  https://a.link${KNOT}b  connect something new to what exists`,
-  `a${KNOT}  leave the other side open`,
-  `${KNOT}https://…  a web page or a file path is already an address`,
-  'Pick a row from the list. /knot lists what resolved in this session.',
+  `${LOOP}name  search every source for a fragment`,
+  `${LOOP}source:name  search one source (obsidian, notion, scuba)`,
+  `a${LOOP}b  connect two fragments: pick one, type ${LOOP} again, pick the other`,
+  `"a new question"${LOOP}b  or  https://a.link${LOOP}b  connect something new to what exists`,
+  `a${LOOP}  leave the other side open`,
+  `${LOOP}https://…  a web page or a file path is already an address`,
+  'Pick a row from the list. /icw lists what resolved in this session.',
 ]
 
-/** The knot being typed: the word that ends at the cursor, split at its ⌘. */
+/** The loop being typed: the word that ends at the cursor, split at its ⌘. */
 const spotAt = (text: string, cursor: number) => {
   const before = text.slice(0, cursor)
   const start = before.search(/\S+$/)
   if (start < 0) return undefined
   const token = before.slice(start)
-  const at = token.lastIndexOf(KNOT)
+  const at = token.lastIndexOf(LOOP)
 
   return at < 0
     ? undefined
@@ -174,19 +174,19 @@ function refreshMenu(
     : config.order
         .filter(source => source.startsWith(typed.toLowerCase()))
         .map(source => ({
-          label: `${KNOT}${source}:`,
+          label: `${LOOP}${source}:`,
           hint: canSearch(source) ? `search ${source} only` : 'paste a URL',
           write: `${kept}${source}:`,
         }))
   // a⌘ with a picked fragment on the left: the two are strung together by
-  // default. One row undoes that, for two separate knots.
+  // default. One row undoes that, for two separate loops.
   const strung = /^([^\s⌘]+:[^\s⌘]+)⌘$/.exec(kept)
   if (strung && typed === '') {
     sourceRows.unshift({
-      label: `${KNOT}${strung[1]} ${KNOT}…`,
-      hint: 'keep them as two separate knots',
+      label: `${LOOP}${strung[1]} ${LOOP}…`,
+      hint: 'keep them as two separate loops',
       write: '',
-      join: { from: kept, to: `${KNOT}${strung[1]} ${KNOT}` },
+      join: { from: kept, to: `${LOOP}${strung[1]} ${LOOP}` },
     })
   }
   const handleRow = (h: Handle): MenuRow => ({
@@ -197,12 +197,12 @@ function refreshMenu(
   const show = (rows: MenuRow[], note: string) => {
     if (seq !== menu.seq) return
     menu.isOpen = rows.length > 0 || note !== ''
-    menu.head = `${KNOT} ${isSourced ? named : 'all sources'}`
+    menu.head = `${LOOP} ${isSourced ? named : 'all sources'}`
     menu.note = note
     menu.rows = rows
-    // The knot on its own, nothing typed after it: show how it is used.
-    menu.help = typed === '' && kept === KNOT ? USAGE : []
-    if (strung && typed === '') menu.head = `${KNOT} ${strung[1]} with…`
+    // The loop on its own, nothing typed after it: show how it is used.
+    menu.help = typed === '' && kept === LOOP ? USAGE : []
+    if (strung && typed === '') menu.head = `${LOOP} ${strung[1]} with…`
     $.ui.invalidate('ui.render')
   }
 
@@ -243,7 +243,7 @@ function refreshMenu(
         ? [named]
         : config.order.filter(source => canSearch(source)),
       sourceRows,
-      head: `${KNOT} ${isSourced ? named : 'all sources'}`,
+      head: `${LOOP} ${isSourced ? named : 'all sources'}`,
     })
   })
 }
@@ -311,7 +311,7 @@ async function searchMenu(
   $.ui.invalidate('ui.render')
 }
 
-/** Writes a menu row over the knot being typed, and saves a picked fragment. */
+/** Writes a menu row over the loop being typed, and saves a picked fragment. */
 async function pickRow(
   $: EngineInterface,
   config: Config,
@@ -328,7 +328,7 @@ async function pickRow(
     held = undefined
   }
   if (row.join) {
-    // The prefix knot just picked becomes the left side of an infix.
+    // The prefix loop just picked becomes the left side of an infix.
     const at = box.text.lastIndexOf(row.join.from)
     if (at < 0) return
     const joined =
@@ -346,18 +346,18 @@ async function pickRow(
   // After a fragment picked in prefix form, offer to connect it to another.
   const handle = row.write.trim()
   const isHandle = row.write.endsWith(' ') && handle.includes(':')
-  if (isHandle && handle.startsWith(KNOT) && !handle.slice(1).includes(KNOT)) {
+  if (isHandle && handle.startsWith(LOOP) && !handle.slice(1).includes(LOOP)) {
     menu.seq += 1
     menu.isOpen = true
     menu.help = []
-    menu.head = `${KNOT} added ${handle}`
+    menu.head = `${LOOP} added ${handle}`
     menu.note = ''
     menu.rows = [
       {
-        label: `${handle.slice(1)}${KNOT}…`,
+        label: `${handle.slice(1)}${LOOP}…`,
         hint: 'connect it with another fragment',
         write: '',
-        join: { from: row.write, to: `${handle.slice(1)}${KNOT}` },
+        join: { from: row.write, to: `${handle.slice(1)}${LOOP}` },
       },
     ]
     $.ui.invalidate('ui.render')
@@ -370,8 +370,8 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'knot',
-      description: 'List resolved knots; sources; forget <handle>',
+      name: 'icw',
+      description: 'List resolved loops; sources; forget <handle>',
       argumentHint: '[pick | sources | forget <handle>]',
     })
     editing.surface = e.surface ?? ''
@@ -383,18 +383,18 @@ export const register: Register = (on, options) => {
   on('prompt.autocomplete', async ($, e, next) => {
     picker.asked += 1
     picker.lastToken = e.token
-    if (!e.token.includes(KNOT) && e.token !== 'icw') return next(e)
+    if (!e.token.includes(LOOP) && e.token !== 'icw') return next(e)
     const beneath = await next(e)
     const add = (rows: { text: string; label: string; description: string }[]) => ({
       suggestions: [...beneath.suggestions, ...rows.slice(0, config.rows)],
     })
     if (e.token === 'icw') {
       return add([
-        { text: KNOT, label: KNOT, description: 'in correspondence with' },
+        { text: LOOP, label: LOOP, description: 'in correspondence with' },
       ])
     }
 
-    const at = e.token.lastIndexOf(KNOT)
+    const at = e.token.lastIndexOf(LOOP)
     const typed = e.token.slice(at + 1)
     // ⌘a⌘ : the operator typed straight after a picked side. The leading ⌘
     // goes, as in the menu, so what follows makes a⌘b.
@@ -405,7 +405,7 @@ export const register: Register = (on, options) => {
       .filter(source => source.startsWith(typed.toLowerCase()))
       .map(source => ({
         text: `${kept}${source}:`,
-        label: `${KNOT}${source}:`,
+        label: `${LOOP}${source}:`,
         description: canSearch(source) ? `search ${source}` : source,
       }))
     const handleRow = (h: { slug: string; source: string; title: string }) => ({
@@ -420,14 +420,14 @@ export const register: Register = (on, options) => {
         .sort((a, b) => b.usedAt - a.usedAt)
         .slice(0, 3)
 
-      // Strung by default; one row undoes it, for two separate knots.
+      // Strung by default; one row undoes it, for two separate loops.
       const strung = /^([^\s⌘]+:[^\s⌘]+)⌘$/.exec(kept)
       const apart = strung
         ? [
             {
-              text: `${KNOT}${strung[1]} ${KNOT}`,
-              label: `${KNOT}${strung[1]} ${KNOT}…`,
-              description: 'keep them as two separate knots',
+              text: `${LOOP}${strung[1]} ${LOOP}`,
+              label: `${LOOP}${strung[1]} ${LOOP}…`,
+              description: 'keep them as two separate loops',
             },
           ]
         : []
@@ -518,9 +518,9 @@ export const register: Register = (on, options) => {
   on('prompt.edit', async ($, e, next) => {
     let box = await next(e)
     editing.asked += 1
-    // Stringing is the default: a knot typed after a picked fragment joins
+    // Stringing is the default: a loop typed after a picked fragment joins
     // the two, so ⌘a ⌘ becomes a⌘ and the next pick makes a⌘b.
-    if (e.inputText === KNOT) {
+    if (e.inputText === LOOP) {
       const before = box.text.slice(0, box.cursor)
       const earlier = /(^|\s)(\S+)\s+⌘$/.exec(before)
       const word = earlier?.[2] ?? ''
@@ -528,9 +528,9 @@ export const register: Register = (on, options) => {
       const single = /^⌘([^\s⌘]+:[^\s⌘]+)$/.exec(word)
       const isStrung = /^[^\s⌘]+:[^\s⌘]+(⌘[^\s⌘]+:[^\s⌘]+)+$/.test(word)
       const joined = single
-        ? `${single[1]}${KNOT}`
+        ? `${single[1]}${LOOP}`
         : isStrung
-          ? `${word}${KNOT}`
+          ? `${word}${LOOP}`
           : undefined
       if (earlier && joined) {
         const start = earlier.index + (earlier[1] ?? '').length
@@ -580,7 +580,7 @@ export const register: Register = (on, options) => {
         ))}
         {rows.slice(0, config.rows).map((row, n) => (
           <Button
-            key={`knot-${n}`}
+            key={`loop-${n}`}
             plain
             onPress={() => void pickRow($, config, row)}
           >
@@ -624,14 +624,14 @@ export const register: Register = (on, options) => {
       await keepHandle($, { ...fragment, slug })
       held = undefined
       const draft = (await $.prompt.read()).text
-      const lead = draft.endsWith(KNOT)
+      const lead = draft.endsWith(LOOP)
         ? ''
-        : `${draft === '' || /\s$/.test(draft) ? '' : ' '}${KNOT}`
+        : `${draft === '' || /\s$/.test(draft) ? '' : ' '}${LOOP}`
       await $.prompt.fill({
         text: `${lead}${fragment.source}:${slug} `,
         mode: 'append',
       })
-      pick.note = `added ${KNOT}${fragment.source}:${slug}`
+      pick.note = `added ${LOOP}${fragment.source}:${slug}`
       // Hand the keyboard back, so Enter sends the message.
       await $.ui.close({ id: PANE })
     }
@@ -692,20 +692,20 @@ export const register: Register = (on, options) => {
     }
     try {
       const isTyped = e.origin.kind === 'composer' && !e.command && !e.isMeta
-      const knots = isTyped ? parse(e.text) : []
-      if (isTyped && e.text.trim() === KNOT) {
+      const loops = isTyped ? parse(e.text) : []
+      if (isTyped && e.text.trim() === LOOP) {
         block = [
-          `[icw] The message is ${KNOT} on its own, with nothing on either side. That asks for instructions: explain briefly how the knot is used here.`,
+          `[icw] The message is ${LOOP} on its own, with nothing on either side. That asks for instructions: explain briefly how the loop is used here.`,
           ...USAGE,
         ].join('\n')
       }
-      if (knots.length > 0) {
-        const resolved = await resolveAll($, config, knots)
-        sessionKnots.push(
-          ...resolved.filter(({ knot }) => knot.form !== 'undelimited'),
+      if (loops.length > 0) {
+        const resolved = await resolveAll($, config, loops)
+        sessionLoops.push(
+          ...resolved.filter(({ loop }) => loop.form !== 'undelimited'),
         )
         block = contextBlock(resolved) || undefined
-        if (config.isDebug) $.ui.log(`icw: ${knots.length} knot(s) attached`)
+        if (config.isDebug) $.ui.log(`icw: ${loops.length} loop(s) attached`)
       }
     } catch (error) {
       // Fail open: the prompt goes ahead as typed.
@@ -717,21 +717,21 @@ export const register: Register = (on, options) => {
       : next(e)
   })
 
-  // ── In the transcript: the knot, shimmering, and its links ──────────────
+  // ── In the transcript: the loop, shimmering, and its links ──────────────
   on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {
     const { text, origin } = e.props
     const isPlain =
       PERSON.has(origin.kind) &&
-      (text.includes(KNOT) || text.includes('i/c/w')) &&
+      (text.includes(LOOP) || text.includes('i/c/w')) &&
       text.length <= 4000 &&
       !text.includes('```')
     if (!isPlain) {
 
       return next(e)
     }
-    const knots = parse(text)
+    const loops = parse(text)
     const glyphs = glyphsOf(text)
-    if (knots.length === 0 && glyphs.length === 0) return next(e)
+    if (loops.length === 0 && glyphs.length === 0) return next(e)
 
     const handles = await heldHandles($)
     const isRemote = e.surface !== 'terminal'
@@ -754,7 +754,7 @@ export const register: Register = (on, options) => {
 
       return isLinkable && address.length <= 2048 ? address : undefined
     }
-    const sides = knots
+    const sides = loops
       .flatMap(sidesOf)
       .map(side => {
         const fragment =
@@ -774,7 +774,7 @@ export const register: Register = (on, options) => {
     if (!isInline && sides.length === 0) return next(e)
 
     // The shimmer: while a message is new and in view, a timer asks for a
-    // redraw and each knot takes the next hue. After that it rests on one.
+    // redraw and each loop takes the next hue. After that it rests on one.
     const id = e.requestId
     const now = Date.now()
     if (!firstDrawn.has(id)) firstDrawn.set(id, now)
@@ -804,7 +804,7 @@ export const register: Register = (on, options) => {
     const { Box, Text, Link } = $.ui.resolve(e)
     const glyph = (n: number) => (
       <Text bold color={hueColor(glide + n * 47 + 200)}>
-        {KNOT}
+        {LOOP}
       </Text>
     )
     const unlinked = sides.filter(s => !s.href)
@@ -850,7 +850,7 @@ export const register: Register = (on, options) => {
           <Text>{parts}</Text>
           {unlinked.map(s => (
             <Text dimColor>
-              {KNOT} {s.side.text} → {s.fragment.address}
+              {LOOP} {s.side.text} → {s.fragment.address}
             </Text>
           ))}
         </Box>
@@ -880,8 +880,8 @@ export const register: Register = (on, options) => {
     )
   })
 
-  // ── /knot ───────────────────────────────────────────────────────────────
-  on('command.run', { command: 'knot' }, async ($, e) => {
+  // ── /icw ───────────────────────────────────────────────────────────────
+  on('command.run', { command: 'icw' }, async ($, e) => {
     const [verb = '', ...rest] = e.args.trim().split(/\s+/)
 
     if (verb === 'sources') {
@@ -907,8 +907,8 @@ export const register: Register = (on, options) => {
     }
 
     if (verb === 'forget') {
-      const name = rest.join(' ').replace(KNOT, '')
-      if (!name) return { text: 'Usage: /knot forget <handle>' }
+      const name = rest.join(' ').replace(LOOP, '')
+      if (!name) return { text: 'Usage: /icw forget <handle>' }
       const gone = await forgetHandle($, name)
 
       return { text: gone ? `Forgot ${name}.` : `No handle named ${name}.` }
@@ -917,7 +917,7 @@ export const register: Register = (on, options) => {
     if (verb === 'pick') {
       const opened = await $.ui.open({
         id: PANE,
-        title: `${KNOT} pick a fragment`,
+        title: `${LOOP} pick a fragment`,
         focus: true,
       })
 
@@ -928,12 +928,12 @@ export const register: Register = (on, options) => {
       }
     }
 
-    if (sessionKnots.length === 0) {
+    if (sessionLoops.length === 0) {
       const count = (await loadHandles($)).length
 
-      return { text: `No knots resolved yet. ${count} handle(s) in the store.` }
+      return { text: `No loops resolved yet. ${count} handle(s) in the store.` }
     }
 
-    return { text: contextBlock(sessionKnots).split('\n').slice(1).join('\n') }
+    return { text: contextBlock(sessionLoops).split('\n').slice(1).join('\n') }
   })
 }

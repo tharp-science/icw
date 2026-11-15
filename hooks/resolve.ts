@@ -5,7 +5,7 @@ import type { EngineInterface } from 'claude-code'
 import { canSearch, search, within } from './adapters'
 import type { Config } from './adapters'
 import { SOURCES, fits, sidesOf } from './parse'
-import type { Knot, Side } from './parse'
+import type { Loop, Side } from './parse'
 import { findHandle, keepHandle, loadHandles } from './store'
 import type { Fragment, Handle } from './store'
 
@@ -138,23 +138,23 @@ async function resolveSide(
   return fromSearch(mixed, wanted, config.candidates)
 }
 
-export type Resolved = { knot: Knot; sides: Map<Side, Resolution> }
+export type Resolved = { loop: Loop; sides: Map<Side, Resolution> }
 
-/** Resolves every side of every knot, all of them inside one budget. */
+/** Resolves every side of every loop, all of them inside one budget. */
 export async function resolveAll(
   $: EngineInterface,
   config: Config,
-  knots: Knot[],
+  loops: Loop[],
 ): Promise<Resolved[]> {
   const handles = await loadHandles($)
   const startedAt = Date.now()
   const left = () => config.sendBudgetMs - (Date.now() - startedAt)
 
   return Promise.all(
-    knots.map(async knot => {
+    loops.map(async loop => {
       const sides = new Map<Side, Resolution>()
       await Promise.all(
-        sidesOf(knot).map(async side => {
+        sidesOf(loop).map(async side => {
           const found = await resolveSide($, config, handles, side, left())
           sides.set(side, found)
           if (found.status === 'resolved') {
@@ -163,7 +163,7 @@ export async function resolveAll(
         }),
       )
 
-      return { knot, sides }
+      return { loop, sides }
     }),
   )
 }
@@ -190,37 +190,37 @@ const sideText = (label: string, side: Side, found: Resolution): string[] => {
 }
 
 /**
- * The block only Claude reads. A knot whose sides the mod could not tell
+ * The block only Claude reads. A loop whose sides the mod could not tell
  * apart is left out: Claude sees the message and reads it from there.
  * Answers '' when nothing is left to say.
  */
 export const contextBlock = (resolved: Resolved[]): string => {
-  const told = resolved.filter(({ knot }) => knot.form !== 'undelimited')
+  const told = resolved.filter(({ loop }) => loop.form !== 'undelimited')
   if (told.length === 0) return ''
   const out = [
-    '[icw] Knots found in this message. Addresses were resolved by the mod. The reading is not decided here; read each knot with the icw-correspondence skill where it is available.',
+    '[icw] Loops found in this message. Addresses were resolved by the mod. The reading is not decided here; read each loop with the icw-correspondence skill where it is available.',
   ]
-  told.forEach(({ knot, sides }, i) => {
+  told.forEach(({ loop, sides }, i) => {
     const side = (label: string, s: Side) =>
       sideText(label, s, sides.get(s) ?? { status: 'missing' })
-    if (knot.form === 'infix') {
+    if (loop.form === 'infix') {
       out.push(`${i + 1}. form: infix`)
-      out.push(...side('left: ', knot.left), ...side('right:', knot.right))
-    } else if (knot.form === 'prefix') {
+      out.push(...side('left: ', loop.left), ...side('right:', loop.right))
+    } else if (loop.form === 'prefix') {
       out.push(
-        `${i + 1}. form: prefix (left side open: take it from the sentence around the knot, else from the work at hand)`,
+        `${i + 1}. form: prefix (left side open: take it from the sentence around the loop, else from the work at hand)`,
       )
-      out.push(...side('right:', knot.right))
-    } else if (knot.form === 'open') {
+      out.push(...side('right:', loop.right))
+    } else if (loop.form === 'open') {
       out.push(`${i + 1}. form: open (the other side is open)`)
-      out.push(...side('left: ', knot.left))
-    } else if (knot.form === 'chain') {
+      out.push(...side('left: ', loop.left))
+    } else if (loop.form === 'chain') {
       out.push(
-        `${i + 1}. form: chain (${knot.sides.length} on one string; how they pair up is not decided here)`,
+        `${i + 1}. form: chain (${loop.sides.length} on one string; how they pair up is not decided here)`,
       )
-      knot.sides.forEach((s, n) => out.push(...side(`${n + 1}:`, s)))
+      loop.sides.forEach((s, n) => out.push(...side(`${n + 1}:`, s)))
     } else {
-      out.push(`${i + 1}. form: ${knot.form}`, `   text: "${knot.text}"`)
+      out.push(`${i + 1}. form: ${loop.form}`, `   text: "${loop.text}"`)
     }
   })
 

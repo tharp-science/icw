@@ -31,19 +31,19 @@ test('prefix, two prefixes and open', async () => {
 })
 
 test('a source-qualified handle', async () => {
-  const [knot] = parse('⌘notion:field-notes-on-rivers')
-  expect(knot?.form).toBe('prefix')
-  if (knot?.form !== 'prefix') return
-  expect(knot.right.source).toBe('notion')
-  expect(knot.right.slug).toBe('field-notes-on-rivers')
+  const [loop] = parse('⌘notion:field-notes-on-rivers')
+  expect(loop?.form).toBe('prefix')
+  if (loop?.form !== 'prefix') return
+  expect(loop.right.source).toBe('notion')
+  expect(loop.right.slug).toBe('field-notes-on-rivers')
 })
 
 test('addresses and phrases', async () => {
-  const [knot] = parse('https://example.org/ ⌘ ./notes/draft.md')
-  expect(knot?.form).toBe('infix')
-  if (knot?.form !== 'infix') return
-  expect(knot.left.kind).toBe('url')
-  expect(knot.right.kind).toBe('path')
+  const [loop] = parse('https://example.org/ ⌘ ./notes/draft.md')
+  expect(loop?.form).toBe('infix')
+  if (loop?.form !== 'infix') return
+  expect(loop.left.kind).toBe('url')
+  expect(loop.right.kind).toBe('path')
   expect(sides('"the home page copy" ⌘ [the oral history]')).toEqual([
     ['the home page copy', 'the oral history'],
   ])
@@ -57,7 +57,7 @@ test('what the mod leaves to Claude', async () => {
   expect(forms('compare skill ⌘ oral-history')).toEqual(['undelimited'])
 })
 
-test('what is not a knot', async () => {
+test('what is not a loop', async () => {
   for (const text of [
     'press ⌘K',
     '⌘⇧P',
@@ -67,7 +67,7 @@ test('what is not a knot', async () => {
     '```\nskill⌘oral-history\n```',
     '> skill⌘oral-history',
     'icw',
-    'no knot at all',
+    'no loop at all',
   ]) {
     expect(forms(text)).toEqual([])
   }
@@ -83,21 +83,21 @@ test('a slug keeps the letters under accents', async () => {
   expect(slugify('Über die Brücke')).toBe('uber-die-brucke')
 })
 
-test('two picked handles with the knot between them are one infix', async () => {
-  const [knot, ...rest] = parse('notion:field-notes⌘scuba:river-papers')
+test('two picked handles with the loop between them are one infix', async () => {
+  const [loop, ...rest] = parse('notion:field-notes⌘scuba:river-papers')
   expect(rest).toEqual([])
-  expect(knot?.form).toBe('infix')
-  if (knot?.form !== 'infix') return
-  expect(knot.left.source).toBe('notion')
-  expect(knot.right.source).toBe('scuba')
+  expect(loop?.form).toBe('infix')
+  if (loop?.form !== 'infix') return
+  expect(loop.left.source).toBe('notion')
+  expect(loop.right.source).toBe('scuba')
 })
 
 test('quotes mark the person\'s own words, brackets a phrase to look up', async () => {
-  const [knot] = parse('"how does this hold up?"⌘[the oral history]')
-  expect(knot?.form).toBe('infix')
-  if (knot?.form !== 'infix') return
-  expect(knot.left.isQuoted).toBe(true)
-  expect(knot.right.isQuoted).toBe(false)
+  const [loop] = parse('"how does this hold up?"⌘[the oral history]')
+  expect(loop?.form).toBe('infix')
+  if (loop?.form !== 'infix') return
+  expect(loop.left.isQuoted).toBe(true)
+  expect(loop.right.isQuoted).toBe(false)
 })
 
 test('a long title keeps its beginning and end, cut in the middle', async () => {
@@ -107,16 +107,16 @@ test('a long title keeps its beginning and end, cut in the middle', async () => 
   expect(fits(title, slug)).toBe('whole')
   expect(fits(title, 'a-short-history-of-the-river')).toBe('start')
   expect(fits(title, 'mountain')).toBe(undefined)
-  const [knot] = parse(`⌘notion:${slug} `)
-  expect(knot?.form).toBe('prefix')
-  if (knot?.form === 'prefix') expect(knot.right.slug).toBe(slug)
+  const [loop] = parse(`⌘notion:${slug} `)
+  expect(loop?.form).toBe('prefix')
+  if (loop?.form === 'prefix') expect(loop.right.slug).toBe(slug)
 })
 
-test('three on one string are one knot of several', async () => {
-  const [knot, ...rest] = parse('notion:a-b⌘scuba:c-d⌘obsidian:e-f')
+test('three on one string are one loop of several', async () => {
+  const [loop, ...rest] = parse('notion:a-b⌘scuba:c-d⌘obsidian:e-f')
   expect(rest).toEqual([])
-  expect(knot?.form).toBe('chain')
-  expect(knot ? sidesOf(knot).map(s => s.source) : []).toEqual([
+  expect(loop?.form).toBe('chain')
+  expect(loop ? sidesOf(loop).map(s => s.source) : []).toEqual([
     'notion',
     'scuba',
     'obsidian',
