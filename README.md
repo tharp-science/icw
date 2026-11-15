@@ -105,4 +105,4 @@ The skill names no source. It reads whatever the sides are: an address from the 
 
 ## Licence
 
-MIT, see `LICENSE`. Copyright Thyke Applied Research & Participatory Prototyping (THARP). The slash mark used as the icon is a mark of THARP and is not covered by the MIT licence.
+MIT, see `LICENSE`. Copyright Thyke Applied Research & Participatory Prototyping (THARP). The wordmark used as the icon is a mark of THARP and is not covered by the MIT licence.
